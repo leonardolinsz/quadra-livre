@@ -126,21 +126,6 @@ quadra-livre/
 - **Geocoding:** Nominatim + fallback hardcoded de bairros de SP
 - **Mapas:** Google Maps (links externos para rotas e visualização)
 
-## 🌐 Deploy
-
-### Render (gratuito)
-
-1. Crie um **Web Service** no [Render](https://render.com)
-2. Conecte o repositório
-3. Configure:
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-   - **Environment:** Node
-
-### Outras opções
-
-Funciona em qualquer host que rode Node.js: Railway, Fly.io, VPS, etc.
-
 ## 📝 Notas
 
 - Os dados vêm do OpenStreetMap — a cobertura depende de quanto foi mapeado na região
