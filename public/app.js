@@ -34,6 +34,13 @@ let allPlaces = [];
 let bairroPlaces = []; // quadras da busca por bairro
 let currentBairro = ''; // bairro selecionado atualmente
 let bairroLoading = false;
+let currentPage = 1;
+const PAGE_SIZE = 20;
+let lastFilteredPlaces = [];
+let lastLocalResults = [];
+let lastSportKey = '';
+let lastBairro = '';
+let lastNome = '';
 
 // ===== INIT =====
 async function init() {
@@ -213,6 +220,7 @@ async function handleBairroChange() {
 }
 
 function applyFilters() {
+    currentPage = 1;
     const sportKey = document.getElementById('filterSport').value;
     const bairroName = document.getElementById('filterBairro').value;
     const nome = document.getElementById('filterNome').value.trim().toLowerCase();
@@ -257,6 +265,12 @@ function applyFilters() {
     if (bairroName) localFiltered = localFiltered.filter(q => q.bairro && q.bairro.toLowerCase() === bairroName.toLowerCase());
 
     renderResults(filtered, localFiltered, sportKey, bairroName, nome);
+}
+
+function goToPage(page) {
+    currentPage = page;
+    renderResults(lastFilteredPlaces, lastLocalResults, lastSportKey, lastBairro, lastNome);
+    document.getElementById('resultsTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ===== TAGS HELPERS =====
@@ -315,11 +329,29 @@ function buildTags(place) {
 
 // ===== RENDER =====
 function renderResults(places, localResults, sportKey, bairro, nome) {
+    // Salvar estado pra paginação
+    lastFilteredPlaces = places;
+    lastLocalResults = localResults;
+    lastSportKey = sportKey;
+    lastBairro = bairro;
+    lastNome = nome;
+
     const title = document.getElementById('resultsTitle');
     const content = document.getElementById('resultsContent');
-    const totalCount = places.length + localResults.length;
 
-    // Montar titulo descritivo
+    // Juntar tudo numa lista só pra paginar
+    const allItems = [
+        ...places.map(p => ({ type: 'osm', data: p })),
+        ...localResults.map(q => ({ type: 'local', data: q }))
+    ];
+    const totalCount = allItems.length;
+    const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = allItems.slice(start, start + PAGE_SIZE);
+
+    // Titulo descritivo
     let desc = `<span>${totalCount}</span> quadra${totalCount !== 1 ? 's' : ''}`;
     const sportLabel = sportKey ? sports.find(s => s.key === sportKey)?.name : '';
     if (sportLabel) desc += ` de ${sportLabel}`;
@@ -341,58 +373,93 @@ function renderResults(places, localResults, sportKey, bairro, nome) {
 
     let html = '<div class="results-grid">';
 
-    places.forEach(p => {
-        const name = p.name || 'Quadra esportiva';
-        const tags = buildTags(p);
-        const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
-        const routeUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`;
+    pageItems.forEach(item => {
+        if (item.type === 'osm') {
+            const p = item.data;
+            const name = p.name || 'Quadra esportiva';
+            const tags = buildTags(p);
+            const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
+            const routeUrl = `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lon}`;
 
-        html += `
-        <div class="court-card">
-            <div class="court-photo">
-                <div class="no-photo">\uD83C\uDFDF\uFE0F</div>
-            </div>
-            <div class="court-body">
-                <h4>${esc(name)}</h4>
-                ${p.bairro ? `<div class="court-bairro"><span class="pin-icon">&#128205;</span>${esc(p.bairro)}</div>` : ''}
-                ${p.address ? `<div class="court-address">${esc(p.address)}</div>` : ''}
-                ${tags.length ? `<div class="court-types">${tags.map(t => `<span class="court-type-tag">${t}</span>`).join('')}</div>` : ''}
-                ${p.openingHours ? `<div class="court-hours">&#128336; ${esc(p.openingHours)}</div>` : ''}
-                ${p.phone ? `<div class="court-phone">&#128222; ${esc(p.phone)}</div>` : ''}
-                <div class="court-actions">
-                    <a href="${routeUrl}" target="_blank" class="btn-maps">Rotas</a>
-                    <a href="${gmapsUrl}" target="_blank" class="btn-route">Ver no Mapa</a>
+            html += `
+            <div class="court-card">
+                <div class="court-photo">
+                    <div class="no-photo">\uD83C\uDFDF\uFE0F</div>
                 </div>
-            </div>
-        </div>`;
-    });
-
-    localResults.forEach(q => {
-        const addr = q.endereco + (q.bairro ? ' \u2014 ' + q.bairro : '');
-        const routeUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;
-        const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
-
-        html += `
-        <div class="court-card">
-            <div class="court-photo">
-                <div class="no-photo" style="background:linear-gradient(135deg,var(--green-dark),var(--green))">\u2B50</div>
-                <span class="court-status unknown">Comunidade</span>
-            </div>
-            <div class="court-body">
-                <h4>${esc(q.nome)}</h4>
-                ${q.bairro ? `<div class="court-bairro"><span class="pin-icon">&#128205;</span>${esc(q.bairro)}</div>` : ''}
-                <div class="court-address">${esc(q.endereco)}</div>
-                ${q.preco ? `<div class="court-price"><strong>${esc(q.preco)}</strong> /hora</div>` : ''}
-                <div class="court-types"><span class="court-type-tag">Por ${esc(q.cadastradoPor)}</span></div>
-                <div class="court-actions">
-                    <a href="${routeUrl}" target="_blank" class="btn-maps">Rotas</a>
-                    <a href="${gmapsUrl}" target="_blank" class="btn-route">Ver no Mapa</a>
+                <div class="court-body">
+                    <h4>${esc(name)}</h4>
+                    ${p.bairro ? `<div class="court-bairro"><span class="pin-icon">&#128205;</span>${esc(p.bairro)}</div>` : ''}
+                    ${p.address ? `<div class="court-address">${esc(p.address)}</div>` : ''}
+                    ${tags.length ? `<div class="court-types">${tags.map(t => `<span class="court-type-tag">${t}</span>`).join('')}</div>` : ''}
+                    ${p.openingHours ? `<div class="court-hours">&#128336; ${esc(p.openingHours)}</div>` : ''}
+                    ${p.phone ? `<div class="court-phone">&#128222; ${esc(p.phone)}</div>` : ''}
+                    <div class="court-actions">
+                        <a href="${routeUrl}" target="_blank" class="btn-maps">Rotas</a>
+                        <a href="${gmapsUrl}" target="_blank" class="btn-route">Ver no Mapa</a>
+                    </div>
                 </div>
-            </div>
-        </div>`;
+            </div>`;
+        } else {
+            const q = item.data;
+            const addr = q.endereco + (q.bairro ? ' \u2014 ' + q.bairro : '');
+            const routeUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`;
+            const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+
+            html += `
+            <div class="court-card">
+                <div class="court-photo">
+                    <div class="no-photo" style="background:linear-gradient(135deg,var(--green-dark),var(--green))">\u2B50</div>
+                    <span class="court-status unknown">Comunidade</span>
+                </div>
+                <div class="court-body">
+                    <h4>${esc(q.nome)}</h4>
+                    ${q.bairro ? `<div class="court-bairro"><span class="pin-icon">&#128205;</span>${esc(q.bairro)}</div>` : ''}
+                    <div class="court-address">${esc(q.endereco)}</div>
+                    ${q.preco ? `<div class="court-price"><strong>${esc(q.preco)}</strong> /hora</div>` : ''}
+                    <div class="court-types"><span class="court-type-tag">Por ${esc(q.cadastradoPor)}</span></div>
+                    <div class="court-actions">
+                        <a href="${routeUrl}" target="_blank" class="btn-maps">Rotas</a>
+                        <a href="${gmapsUrl}" target="_blank" class="btn-route">Ver no Mapa</a>
+                    </div>
+                </div>
+            </div>`;
+        }
     });
 
     html += '</div>';
+
+    // Paginação
+    if (totalPages > 1) {
+        html += `<div class="pagination">`;
+        // Botão anterior
+        if (currentPage > 1) {
+            html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})">&laquo; Anterior</button>`;
+        }
+        // Números das páginas
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
+
+        if (startPage > 1) {
+            html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+            if (startPage > 2) html += `<span class="page-dots">...</span>`;
+        }
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="page-btn${i === currentPage ? ' active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+        }
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) html += `<span class="page-dots">...</span>`;
+            html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+        }
+        // Botão próximo
+        if (currentPage < totalPages) {
+            html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})">Proximo &raquo;</button>`;
+        }
+        html += `<span class="page-info">${start + 1}-${Math.min(start + PAGE_SIZE, totalCount)} de ${totalCount}</span>`;
+        html += `</div>`;
+    }
+
     content.innerHTML = html;
 }
 

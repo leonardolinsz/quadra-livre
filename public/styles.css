@@ -749,3 +749,47 @@ footer {
     flex-shrink: 0;
     font-style: normal;
 }
+
+/* ===== PAGINAÇÃO ===== */
+.pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 32px;
+    padding: 20px 0;
+    flex-wrap: wrap;
+}
+.page-btn {
+    background: var(--card-bg);
+    color: var(--text);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.page-btn:hover {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+}
+.page-btn.active {
+    background: var(--green);
+    color: #fff;
+    border-color: var(--green);
+    font-weight: 700;
+    pointer-events: none;
+}
+.page-dots {
+    color: var(--text-secondary);
+    padding: 0 4px;
+    user-select: none;
+}
+.page-info {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-left: 12px;
+}
