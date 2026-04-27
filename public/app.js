@@ -31,6 +31,9 @@ const SPORT_KEYWORDS = {
 
 // Estado global
 let allPlaces = [];
+let bairroPlaces = []; // quadras da busca por bairro
+let currentBairro = ''; // bairro selecionado atualmente
+let bairroLoading = false;
 
 // ===== INIT =====
 async function init() {
@@ -39,17 +42,36 @@ async function init() {
     setupBairroAutocomplete();
     initScrollObserver();
     setupFilters();
-    await loadQuadras();
+    await loadInitialQuadras();
 }
 
 // ===== CARREGAR QUADRAS =====
-async function loadQuadras() {
+async function loadQuadras(lat, lon, radius) {
+    const params = new URLSearchParams();
+    if (lat !== undefined) params.set('lat', lat);
+    if (lon !== undefined) params.set('lon', lon);
+    if (radius !== undefined) params.set('radius', radius);
+    const url = '/api/quadras' + (params.toString() ? '?' + params : '');
+
     try {
-        const resp = await fetch('/api/quadras');
+        const resp = await fetch(url);
         const data = await resp.json();
         if (data.error) throw new Error(data.error);
+        return data.places || [];
+    } catch (err) {
+        throw err;
+    }
+}
 
-        allPlaces = data.places || [];
+async function loadInitialQuadras() {
+    try {
+        document.getElementById('resultsContent').innerHTML = `
+            <div class="results-loading">
+                <div class="spinner"></div>
+                <p>Carregando quadras de Sao Paulo...</p>
+            </div>`;
+
+        allPlaces = await loadQuadras();
 
         // Stats
         const bairros = extractBairros(allPlaces);
@@ -67,9 +89,56 @@ async function loadQuadras() {
                 <div class="icon">&#9888;&#65039;</div>
                 <h3>Erro ao carregar</h3>
                 <p>${esc(err.message)}</p>
-                <button class="btn-submit" style="max-width:200px;margin:20px auto 0" onclick="loadQuadras()">Tentar novamente</button>
+                <button class="btn-submit" style="max-width:200px;margin:20px auto 0" onclick="loadInitialQuadras()">Tentar novamente</button>
             </div>`;
         document.getElementById('resultsTitle').textContent = 'Erro ao carregar quadras';
+    }
+}
+
+// Busca quadras ampliada para um bairro específico
+async function loadBairroQuadras(bairroName) {
+    if (bairroLoading) return;
+    bairroLoading = true;
+
+    try {
+        document.getElementById('resultsContent').innerHTML = `
+            <div class="results-loading">
+                <div class="spinner"></div>
+                <p>Buscando quadras na regiao de ${esc(bairroName)}...</p>
+            </div>`;
+        document.getElementById('resultsTitle').innerHTML = `Buscando na regiao de ${esc(bairroName)}...`;
+
+        // Geocodificar o bairro
+        const geoResp = await fetch(`/api/search?q=${encodeURIComponent(bairroName + ' Sao Paulo Brasil')}`);
+        const geoData = await geoResp.json();
+
+        if (!geoData.length) {
+            // Fallback: filtrar só com os dados que já temos
+            bairroPlaces = [];
+            currentBairro = bairroName;
+            applyFilters();
+            return;
+        }
+
+        const { lat, lon } = geoData[0];
+
+        // Buscar quadras num raio de 15km centrado no bairro
+        const places = await loadQuadras(parseFloat(lat), parseFloat(lon), 15000);
+        bairroPlaces = places;
+        currentBairro = bairroName;
+
+        // Atualizar filtro de bairros com os novos dados
+        const mergedBairros = extractBairros([...allPlaces, ...bairroPlaces]);
+        populateBairroFilter(mergedBairros);
+
+        applyFilters();
+    } catch (err) {
+        // Em caso de erro, usa apenas dados locais
+        bairroPlaces = [];
+        currentBairro = bairroName;
+        applyFilters();
+    } finally {
+        bairroLoading = false;
     }
 }
 
@@ -87,29 +156,81 @@ function extractBairros(places) {
 }
 
 function populateBairroFilter(bairros) {
-    const select = document.getElementById('filterBairro');
-    select.innerHTML = '<option value="">Todos os bairros</option>';
+    const datalist = document.getElementById('bairrosList');
+    datalist.innerHTML = '';
     bairros.forEach(b => {
         const opt = document.createElement('option');
         opt.value = b.name;
         opt.textContent = `${b.name} (${b.count})`;
-        select.appendChild(opt);
+        datalist.appendChild(opt);
     });
 }
 
 // ===== FILTROS =====
+
 function setupFilters() {
     document.getElementById('filterSport').addEventListener('change', applyFilters);
-    document.getElementById('filterBairro').addEventListener('change', applyFilters);
+
+    const bairroInput = document.getElementById('filterBairro');
+    // Só busca ao selecionar do datalist (change) ou pressionar Enter — nunca enquanto digita
+    bairroInput.addEventListener('change', () => handleBairroChange());
+    bairroInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleBairroChange();
+        }
+    });
+    bairroInput.addEventListener('input', () => {
+        // Se limpou o campo, volta pro dataset original
+        if (!bairroInput.value.trim()) {
+            currentBairro = '';
+            bairroPlaces = [];
+            applyFilters();
+        }
+    });
+
     document.getElementById('filterNome').addEventListener('input', applyFilters);
+}
+
+async function handleBairroChange() {
+    const bairroName = document.getElementById('filterBairro').value.trim();
+
+    if (!bairroName) {
+        currentBairro = '';
+        bairroPlaces = [];
+        applyFilters();
+        return;
+    }
+
+    if (bairroName.toLowerCase() === currentBairro.toLowerCase()) {
+        // Já buscou esse bairro
+        applyFilters();
+        return;
+    }
+
+    // Bairro selecionado — busca quadras ampliadas na região
+    await loadBairroQuadras(bairroName);
 }
 
 function applyFilters() {
     const sportKey = document.getElementById('filterSport').value;
-    const bairro = document.getElementById('filterBairro').value.toLowerCase();
+    const bairroName = document.getElementById('filterBairro').value;
     const nome = document.getElementById('filterNome').value.trim().toLowerCase();
 
-    let filtered = allPlaces.filter(p => {
+    // Se tem bairro selecionado, usa merge de allPlaces + bairroPlaces (sem duplicatas por lat/lon)
+    let sourcePlaces;
+    if (bairroName && bairroPlaces.length > 0) {
+        const seen = new Set();
+        sourcePlaces = [];
+        [...bairroPlaces, ...allPlaces].forEach(p => {
+            const key = `${p.lat},${p.lon}`;
+            if (!seen.has(key)) { seen.add(key); sourcePlaces.push(p); }
+        });
+    } else {
+        sourcePlaces = allPlaces;
+    }
+
+    let filtered = sourcePlaces.filter(p => {
         // Filtro sport
         if (sportKey && SPORT_KEYWORDS[sportKey]) {
             if (p.sport) {
@@ -118,8 +239,12 @@ function applyFilters() {
                 return false; // sem tag de sport = exclui quando filtra por sport
             }
         }
-        // Filtro bairro
-        if (bairro && (!p.bairro || p.bairro.toLowerCase() !== bairro)) return false;
+        // Filtro bairro — se selecionado, filtra por match no campo bairro OU inclui quadras sem bairro (da região certa)
+        if (bairroName) {
+            const bLower = bairroName.toLowerCase();
+            // Inclui: quadras com bairro igual OU quadras sem bairro (vieram da busca da região)
+            if (p.bairro && p.bairro.toLowerCase() !== bLower) return false;
+        }
         // Filtro nome
         if (nome && !(p.name && p.name.toLowerCase().includes(nome))) return false;
         return true;
@@ -129,9 +254,9 @@ function applyFilters() {
     const cadastradas = JSON.parse(localStorage.getItem('joga_quadras') || '[]');
     let localFiltered = cadastradas;
     if (nome) localFiltered = localFiltered.filter(q => q.nome.toLowerCase().includes(nome));
-    if (bairro) localFiltered = localFiltered.filter(q => q.bairro && q.bairro.toLowerCase() === bairro);
+    if (bairroName) localFiltered = localFiltered.filter(q => q.bairro && q.bairro.toLowerCase() === bairroName.toLowerCase());
 
-    renderResults(filtered, localFiltered, sportKey, bairro, nome);
+    renderResults(filtered, localFiltered, sportKey, bairroName, nome);
 }
 
 // ===== TAGS HELPERS =====
@@ -374,7 +499,7 @@ function showSuggestions(input, box) {
         filtered.map(b =>
             `<div class="suggestion" onmousedown="document.getElementById('${input.id}').value='${b.name.replace(/'/g, "\\'")}';this.parentElement.classList.remove('open')">
                 <span>${b.name}</span>
-                <span class="badge-count">${b.count}</span>
+
             </div>`
         ).join('');
     box.classList.add('open');
