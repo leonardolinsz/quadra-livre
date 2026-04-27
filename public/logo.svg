@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00c853"/>
+      <stop offset="100%" style="stop-color:#00a844"/>
+    </linearGradient>
+  </defs>
+  <!-- Ball shape -->
+  <circle cx="20" cy="20" r="20" fill="url(#bg)"/>
+  <!-- Ball lines -->
+  <path d="M4 20 Q20 8 36 20" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none"/>
+  <path d="M4 20 Q20 32 36 20" stroke="rgba(255,255,255,0.25)" stroke-width="1.5" fill="none"/>
+  <line x1="20" y1="0" x2="20" y2="40" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+  <!-- Q letter -->
+  <text x="20" y="26" text-anchor="middle" font-family="Arial Black,Impact,sans-serif" font-weight="900" font-size="20" fill="white" letter-spacing="-1">Q</text>
+</svg>

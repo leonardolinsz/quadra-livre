@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quadra Livre - Encontre sua quadra</title>
+    <meta name="description" content="Encontre quadras esportivas perto de voce. Futsal, society, basquete, volei, tenis e mais.">
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;900&family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- HEADER -->
+<header id="header">
+    <div class="header-inner">
+        <a href="#home" class="logo">
+            <img src="logo.svg" alt="Quadra Livre" class="logo-img">
+            <div>
+                Quadra<span>Livre</span>
+                <span class="tagline">Encontre sua quadra</span>
+            </div>
+        </a>
+        <nav class="desktop-nav">
+            <a href="#home" class="active">Home</a>
+            <a href="#modalidades">Modalidades</a>
+            <a href="#cadastrar">Cadastrar Quadra</a>
+        </nav>
+        <a href="#cadastrar" class="btn-header">Cadastrar Quadra</a>
+        <button class="hamburger" onclick="toggleMobile()" aria-label="Menu">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</header>
+
+<!-- Mobile -->
+<div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobile()"></div>
+<div class="mobile-menu" id="mobileMenu">
+    <button class="close-mobile" onclick="toggleMobile()">&#10005;</button>
+    <a href="#home" onclick="toggleMobile()">Home</a>
+    <a href="#modalidades" onclick="toggleMobile()">Modalidades</a>
+    <a href="#cadastrar" onclick="toggleMobile()">Cadastrar Quadra</a>
+</div>
+
+<!-- HERO -->
+<section id="home">
+    <div class="hero-content">
+        <div class="hero-badge">Buscador de quadras esportivas</div>
+        <h1>Encontre sua <em>Quadra</em></h1>
+        <h2>Quadras reais de Sao Paulo com rotas no Google Maps</h2>
+
+        <div class="hero-stats">
+            <div class="stat">
+                <div class="stat-num" id="statQuadras">...</div>
+                <div class="stat-label">Quadras</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num" id="statBairros">...</div>
+                <div class="stat-label">Bairros</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num" id="statModalidades">8</div>
+                <div class="stat-label">Modalidades</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FILTROS + LISTAGEM -->
+<section id="quadras-section">
+    <div class="container">
+        <div class="section-header fade-in">
+            <span class="badge">Explore</span>
+            <h2>Quadras em <em>Sao Paulo</em></h2>
+            <p>Filtre por modalidade, bairro ou nome da quadra</p>
+        </div>
+
+        <div class="filters-bar" id="filtersBar">
+            <div class="filter-group">
+                <label for="filterSport">Modalidade</label>
+                <select id="filterSport">
+                    <option value="">Todas</option>
+                    <option value="futsal">Futsal</option>
+                    <option value="society">Society</option>
+                    <option value="campo">Futebol Campo</option>
+                    <option value="basquete">Basquete</option>
+                    <option value="volei">Volei</option>
+                    <option value="tenis">Tenis</option>
+                    <option value="handebol">Handebol</option>
+                    <option value="futevolei">Futevolei</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="filterBairro">Bairro</label>
+                <select id="filterBairro">
+                    <option value="">Todos os bairros</option>
+                </select>
+            </div>
+            <div class="filter-group filter-group-name">
+                <label for="filterNome">Nome da quadra</label>
+                <input type="text" id="filterNome" placeholder="Buscar por nome...">
+            </div>
+        </div>
+
+        <div class="results-bar">
+            <h3 id="resultsTitle">Carregando quadras...</h3>
+        </div>
+
+        <div id="resultsContent">
+            <div class="results-loading">
+                <div class="spinner"></div>
+                <p>Carregando quadras de Sao Paulo...</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- COMO FUNCIONA -->
+<section id="como-funciona">
+    <div class="container">
+        <div class="section-header fade-in">
+            <span class="badge">Simples assim</span>
+            <h2>Facil de <em>Encontrar</em></h2>
+            <p>Pesquise, escolha e jogue. O resto e com a gente!</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card fade-in">
+                <div class="step-num">1</div>
+                <span class="step-icon">&#128269;</span>
+                <h3>Filtre</h3>
+                <p>Escolha a modalidade, o bairro ou busque pelo nome. Resultados instantaneos.</p>
+            </div>
+            <div class="step-card fade-in">
+                <div class="step-num">2</div>
+                <span class="step-icon">&#128203;</span>
+                <h3>Escolha</h3>
+                <p>Veja endereco, tipo de piso, se e publica ou privada. Tudo pra decidir rapido.</p>
+            </div>
+            <div class="step-card fade-in">
+                <div class="step-num">3</div>
+                <span class="step-icon">&#9917;</span>
+                <h3>Jogue!</h3>
+                <p>Abra a rota no Google Maps e chame a galera. Bola no chao!</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- MODALIDADES -->
+<section id="modalidades">
+    <div class="container">
+        <div class="section-header fade-in">
+            <span class="badge">E ai, qual a sua pegada?</span>
+            <h2>Modali<em>dades</em></h2>
+            <p>Conheca as modalidades que voce encontra no Quadra Livre!</p>
+        </div>
+        <div class="sports-grid" id="sportsGrid"></div>
+    </div>
+</section>
+
+<!-- CADASTRAR QUADRA -->
+<section id="cadastrar">
+    <div class="container">
+        <div class="section-header fade-in">
+            <span class="badge">Contribua</span>
+            <h2>Cadastrar <em>Quadra</em></h2>
+            <p>Adicione uma quadra que voce conhece para ajudar outros jogadores!</p>
+        </div>
+        <div class="cadastrar-wrapper">
+            <div class="form-card fade-in">
+                <form id="formCadastro" onsubmit="handleCadastro(event)">
+                    <div class="form-group">
+                        <label for="quadraNome">Nome da Quadra</label>
+                        <input type="text" id="quadraNome" placeholder="Ex: Arena Society Vila Leopoldina" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="quadraEndereco">Endereco</label>
+                        <input type="text" id="quadraEndereco" placeholder="Rua, numero, cidade" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="quadraBairro">Bairro</label>
+                        <input type="text" id="quadraBairro" placeholder="Ex: Vila Leopoldina" required autocomplete="off">
+                        <div class="bairro-suggestions" id="bairroSuggestions"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="quadraPreco">Preco por hora <span class="optional">(opcional)</span></label>
+                        <input type="text" id="quadraPreco" placeholder="Ex: R$ 150,00">
+                    </div>
+                    <div class="form-group">
+                        <label for="cadastroNome">Seu Nome</label>
+                        <input type="text" id="cadastroNome" placeholder="Quem esta cadastrando" required>
+                    </div>
+                    <button type="submit" class="btn-submit">Cadastrar Quadra</button>
+                </form>
+            </div>
+
+            <div class="cadastradas-section fade-in" id="cadastradasSection">
+                <h3>Quadras cadastradas pela comunidade</h3>
+                <div id="cadastradasList"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <div class="container">
+        <div class="footer-inner">
+            <a href="#home" class="logo">
+                <img src="logo.svg" alt="Quadra Livre" class="logo-img">
+                <div>Quadra<span>Livre</span></div>
+            </a>
+            <div class="footer-links">
+                <a href="#home">Home</a>
+                <a href="#modalidades">Modalidades</a>
+                <a href="#cadastrar">Cadastrar</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2024 Quadra Livre - Todos os direitos reservados.
+        </div>
+    </div>
+</footer>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+
+</body>
+</html>
